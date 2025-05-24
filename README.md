@@ -86,7 +86,7 @@ export SESSION_SECRET=your-secret-key
 python main.py
 ```
 
-The application will be available at [https://photobooth-xhv0.onrender.com].
+The application will be available at https://photobooth-xhv0.onrender.com .
 
 ## Deployment
 
