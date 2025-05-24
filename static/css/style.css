@@ -1,0 +1,27 @@
+/* Custom CSS for Photobooth application */
+
+/* Photo container */
+.photo-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px 4px 0 0;
+}
+
+/* Toast container */
+.toast-container {
+    z-index: 1050;
+}
+
+/* Dropzone for photo uploads */
+#drop-zone {
+    border: 2px dashed #6c757d;
+    border-radius: 5px;
+    padding: 25px;
+    text-align: center;
+    transition: border-color 0.3s;
+}
+
+#drop-zone.highlight {
+    border-color: #0d6efd;
+}

@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+
+{% block title %}Share Photo{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header">
+                    <h4><i class="fas fa-share-alt me-2"></i>Share Photo</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-dark border-secondary h-100">
+                                <a href="{{ photo.file_url }}" target="_blank" class="photo-link">
+                                    <img src="{{ photo.file_url }}" class="card-img-top img-fluid" alt="{{ photo.original_name }}">
+                                </a>
+                                <div class="card-body">
+                                    <h6 class="card-title text-truncate">
+                                        <i class="fas fa-image me-1"></i>{{ photo.original_name }}
+                                    </h6>
+                                    <p class="card-text small text-muted">
+                                        <i class="fas fa-calendar-alt me-1"></i>{{ photo.uploaded_at.strftime('%Y-%m-%d') }}<br>
+                                        <i class="fas fa-hdd me-1"></i>{{ (photo.file_size / 1024)|int }} KB
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Share this photo</h5>
+                            <p>This link will be valid for 24 hours:</p>
+                            
+                            <div class="input-group mb-3">
+                                <input type="text" id="share-url" class="form-control bg-dark text-light border-secondary" 
+                                       value="{{ share_url }}" readonly>
+                                <button class="btn btn-outline-secondary" type="button" id="copy-button">
+                                    <i class="fas fa-copy"></i> Copy
+                                </button>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Anyone with this link can view this photo without needing to log in.
+                            </div>
+                            
+                            <div class="d-grid gap-2 mt-4">
+                                <a href="{{ url_for('view_folder', folder_key=photo.folder.folder_key) }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Album
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const copyButton = document.getElementById('copy-button');
+        const shareUrl = document.getElementById('share-url');
+        
+        if (copyButton && shareUrl) {
+            copyButton.addEventListener('click', function() {
+                // Select the text
+                shareUrl.select();
+                shareUrl.setSelectionRange(0, 99999); // For mobile devices
+                
+                // Copy the text to the clipboard
+                navigator.clipboard.writeText(shareUrl.value)
+                    .then(() => {
+                        // Change button text temporarily
+                        const originalText = copyButton.innerHTML;
+                        copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                        
+                        // Show toast notification
+                        showToast('Share URL copied to clipboard!', 'success');
+                        
+                        // Reset button after 2 seconds
+                        setTimeout(() => {
+                            copyButton.innerHTML = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy URL: ', err);
+                        showToast('Failed to copy URL', 'danger');
+                    });
+            });
+        }
+    });
+    
+    function showToast(message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast element
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+        
+        // Create toast content
+        toastEl.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        // Add toast to container
+        toastContainer.appendChild(toastEl);
+        
+        // Initialize and show the toast
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+        
+        // Remove toast after it's hidden
+        toastEl.addEventListener('hidden.bs.toast', function() {
+            toastEl.remove();
+        });
+    }
+</script>
+{% endblock %}

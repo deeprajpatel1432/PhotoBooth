@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Photobooth{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        /* Custom Styles */
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 2rem 0;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .footer {
+            margin-top: auto;
+            padding: 1rem 0;
+            font-size: 0.9rem;
+        }
+        
+        /* Card enhancements */
+        .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Photo gallery */
+        .photo-gallery img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        /* QR code container */
+        .qr-code-container {
+            background-color: white;
+            padding: 20px;
+            display: inline-block;
+            margin: 0 auto;
+            border-radius: 10px;
+        }
+        
+        /* Drop zone */
+        #drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 3rem;
+            text-align: center;
+            background-color: rgba(52, 58, 64, 0.5);
+            transition: background-color 0.3s;
+        }
+        
+        #drop-zone.highlight {
+            background-color: rgba(13, 110, 253, 0.1);
+            border-color: #0d6efd;
+        }
+        
+        #file-selector {
+            display: none;
+        }
+        
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+    </style>
+    {% block head_content %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-camera me-2"></i>Photobooth
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('folders') }}">
+                            <i class="fas fa-folder-open me-1"></i>My Folders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('generate') }}">
+                            <i class="fas fa-qrcode me-1"></i>Create QR Code
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>{{ current_user.name or current_user.email }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('profile') }}">
+                                    <i class="fas fa-cog me-2"></i>Profile Settings
+                                </a>
+                            </li>
+                            {% if current_user.is_admin %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('admin') }}">
+                                    <i class="fas fa-chart-bar me-2"></i>Admin Dashboard
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Sign Out
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">
+                            <i class="fas fa-sign-in-alt me-1"></i>Sign In
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('register') }}">
+                            <i class="fas fa-user-plus me-1"></i>Sign Up
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+    
+    <!-- Footer -->
+    <footer class="footer bg-dark text-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">
+                        <i class="fas fa-camera me-1"></i>Photobooth &copy; {{ now.year }}
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">
+                        <a href="#" class="text-light me-3">Privacy Policy</a>
+                        <a href="#" class="text-light">Terms of Service</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Main JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <script>
+        // Setup for delete confirmation modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            
+            if (deleteConfirmModal) {
+                const modal = new bootstrap.Modal(deleteConfirmModal);
+                let deleteType = '';
+                let deleteId = '';
+                
+                // Setup photo delete buttons
+                document.querySelectorAll('.delete-photo-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        deleteType = 'photo';
+                        deleteId = this.dataset.photoId;
+                        
+                        // Set modal title and message
+                        document.getElementById('deleteConfirmModalLabel').textContent = 'Delete Photo';
+                        deleteConfirmModal.querySelector('.modal-body p').textContent = 
+                            `Are you sure you want to delete the photo "${this.dataset.photoName}"? This action cannot be undone.`;
+                        
+                        modal.show();
+                    });
+                });
+                
+                // Setup folder delete buttons
+                document.querySelectorAll('.delete-folder-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        deleteType = 'folder';
+                        deleteId = this.dataset.folderId;
+                        
+                        // Set modal title and message
+                        document.getElementById('deleteConfirmModalLabel').textContent = 'Delete Folder';
+                        deleteConfirmModal.querySelector('.modal-body p').textContent = 
+                            `Are you sure you want to delete the folder "${this.dataset.folderName}" and all its photos? This action cannot be undone.`;
+                        
+                        modal.show();
+                    });
+                });
+                
+                // Handle confirm button click
+                if (confirmDeleteBtn) {
+                    confirmDeleteBtn.addEventListener('click', function() {
+                        if (deleteType === 'photo') {
+                            // Delete photo
+                            window.location.href = `/photo/delete/${deleteId}`;
+                        } else if (deleteType === 'folder') {
+                            // Delete folder
+                            window.location.href = `/folder/delete/${deleteId}`;
+                        }
+                    });
+                }
+            }
+        });
+        
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toastContainer = document.querySelector('.toast-container');
+            
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type}`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            const toastContent = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            toast.innerHTML = toastContent;
+            toastContainer.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(toast, {
+                autohide: true,
+                delay: 5000
+            });
+            
+            bsToast.show();
+            
+            // Remove toast after it's hidden
+            toast.addEventListener('hidden.bs.toast', function() {
+                toast.remove();
+            });
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

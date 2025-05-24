@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block title %}Shared Photo{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header">
+                    <h4><i class="fas fa-share-alt me-2"></i>Shared Photo</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            This is a shared photo. It will be available for viewing for 24 hours from when it was shared.
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-dark border-secondary mb-4">
+                        <a href="{{ photo.file_url }}" target="_blank" class="photo-link">
+                            <img src="{{ photo.file_url }}" class="card-img-top img-fluid" alt="{{ photo.original_name }}">
+                        </a>
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-image me-1"></i>{{ photo.original_name }}
+                            </h5>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar-alt me-1"></i>Uploaded on {{ photo.uploaded_at.strftime('%Y-%m-%d') }}<br>
+                                    <i class="fas fa-hdd me-1"></i>File size: {{ (photo.file_size / 1024)|int }} KB
+                                </small>
+                            </p>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-grid">
+                                <a href="{{ photo.file_url }}" download="{{ photo.original_name }}" class="btn btn-primary">
+                                    <i class="fas fa-download me-2"></i>Download Photo
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <p>Want to create your own photo collection?</p>
+                        <a href="{{ url_for('register') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-user-plus me-2"></i>Sign Up Now
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-sign-in-alt me-2"></i>Log In
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

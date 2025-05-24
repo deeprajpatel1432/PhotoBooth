@@ -1,0 +1,101 @@
+{% extends 'layout.html' %}
+
+{% block title %}Generate QR Code{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark border-secondary">
+                <div class="card-header">
+                    <h2 class="mb-0"><i class="fas fa-qrcode me-2"></i>Generate QR Code</h2>
+                </div>
+                <div class="card-body">
+                    {% if qr_data %}
+                        <div class="text-center mb-4">
+                            <div class="qr-code-container mb-3">
+                                <img src="{{ url_for('static', filename='qr_codes/' + folder.folder_key + '.png') }}" class="img-fluid border border-secondary" alt="QR Code">
+                            </div>
+                            <h4>{{ folder.folder_name }}</h4>
+                            <p class="text-muted">Scan this QR code to upload photos to this folder</p>
+                            
+                            {% if folder.qr_code_expires_at %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-clock me-1"></i> This QR code will expire on: 
+                                <strong>{{ folder.qr_code_expires_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</strong>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="d-grid gap-2 col-md-6 mx-auto mt-4">
+                                <a href="{{ qr_data }}" class="btn btn-primary" target="_blank">
+                                    <i class="fas fa-external-link-alt me-1"></i>Open Upload Page
+                                </a>
+                                <a href="{{ url_for('view_folder', folder_key=folder.folder_key) }}" class="btn btn-outline-info">
+                                    <i class="fas fa-images me-1"></i>View Folder
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('generate') }}">
+                            <div class="mb-4">
+                                <label class="form-label d-block">Storage Type</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="storage_type" id="storage_local" value="local" checked>
+                                    <label class="form-check-label" for="storage_local">
+                                        <i class="fas fa-server me-1"></i>Local Storage
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="storage_type" id="storage_cloud" value="cloud">
+                                    <label class="form-check-label" for="storage_cloud">
+                                        <i class="fas fa-cloud-upload-alt me-1"></i>Cloud Storage
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div id="local_folder_div" class="mb-3">
+                                <label for="folder_name" class="form-label">Folder Name</label>
+                                <input type="text" class="form-control" id="folder_name" name="folder_name" placeholder="e.g., Family Photos" required>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>Enter a name for your folder
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="expiration_time" class="form-label">QR Code Expiration Time (hours)</label>
+                                <input type="number" class="form-control" id="expiration_time" name="expiration_time" placeholder="Leave empty for no expiration" min="1">
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>Optional: Set a time limit (in hours) after which the QR code will expire
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-qrcode me-1"></i>Generate QR Code
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if not qr_data %}
+            <div class="card bg-dark border-secondary mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>How It Works</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li class="mb-2">Enter a name for your photo folder</li>
+                        <li class="mb-2">Generate a QR code that links to an upload page</li>
+                        <li class="mb-2">Scan the QR code with your mobile device to access the upload page</li>
+                        <li class="mb-2">Take photos or select existing ones from your device</li>
+                        <li>Photos will be automatically uploaded to your folder</li>
+                    </ol>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

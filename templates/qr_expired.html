@@ -1,0 +1,56 @@
+{% extends 'layout.html' %}
+
+{% block title %}QR Code Expired{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark border-danger mt-5">
+                <div class="card-header text-center bg-danger text-white">
+                    <h3><i class="fas fa-exclamation-triangle me-2"></i>QR Code Expired</h3>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-clock fa-5x text-danger my-4"></i>
+                    </div>
+                    
+                    <h4 class="mb-3">This QR code has expired or been deactivated.</h4>
+                    
+                    <p class="mb-4">
+                        The QR code for folder "{{ folder.folder_name }}" is no longer active.
+                        {% if reason %}
+                            <br>
+                            <strong>Reason:</strong> {{ reason }}
+                        {% endif %}
+                    </p>
+                    
+                    <div class="alert alert-secondary">
+                        <p>If you need to continue uploading photos to this folder, please contact the folder owner.</p>
+                    </div>
+                    
+                    {% if user_owns_folder %}
+                    <div class="mt-4">
+                        <p>As the owner of this folder, you can generate a new QR code:</p>
+                        <a href="{{ url_for('generate') }}" class="btn btn-primary">
+                            <i class="fas fa-qrcode me-2"></i>Generate New QR Code
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-home me-2"></i>Return to Home
+                    </a>
+                    
+                    {% if is_authenticated %}
+                    <a href="{{ url_for('folders') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-folder me-2"></i>My Folders
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

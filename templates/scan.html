@@ -1,0 +1,555 @@
+{% extends 'layout.html' %}
+
+{% block title %}Upload Photos{% endblock %}
+
+{% block head_content %}
+<style>
+    #camera-container {
+        position: relative;
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+    }
+    
+    #camera {
+        width: 100%;
+        background-color: #222;
+        border: 1px solid #444;
+        border-radius: 4px;
+    }
+    
+    #camera-controls {
+        position: absolute;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        z-index: 10;
+    }
+    
+    .capture-btn {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        border: 3px solid rgba(255,255,255,0.3);
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    
+    .capture-btn::after {
+        content: "";
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background-color: white;
+        border: 2px solid #444;
+    }
+    
+    #preview-image {
+        max-width: 100%;
+        max-height: 450px;
+        display: none;
+        margin: 0 auto;
+        border-radius: 4px;
+        border: 1px solid #444;
+    }
+    
+    .upload-progress {
+        height: 10px;
+    }
+    
+    #result-container {
+        display: none;
+    }
+    
+    #drop-zone {
+        position: relative;
+        width: 100%;
+        min-height: 180px;
+        border: 2px dashed #444;
+        border-radius: 8px;
+        background-color: rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        text-align: center;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+    }
+    
+    #drop-zone:hover {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-color: var(--bs-primary);
+    }
+    
+    #file-selector {
+        display: none;
+    }
+    
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <h2><i class="fas fa-camera me-2"></i>Upload Photos</h2>
+            </div>
+            <div class="card-body">
+                <div id="auth-container" class="text-center pb-4">
+                    {% if use_local_storage %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-server me-2"></i>
+                        <strong>Local Storage Enabled:</strong> Photos will be stored on the server.
+                        <p class="mt-2 mb-0 small text-muted">Folder: {{ folder_name }} (ID: {{ folder_id }})</p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-cloud-upload-alt me-2"></i>
+                                <strong>Cloud Storage Enabled:</strong> Photos will be uploaded to catbox.moe.
+                                <p class="mt-2 mb-0 small text-muted">Folder: {{ folder_name }} (ID: {{ folder_id }})</p>
+                            </div>
+                            <div>
+                                <img src="https://files.catbox.moe/g61fau.png" alt="catbox.moe" height="32" class="ms-2">
+                            </div>
+                        </div>
+                        <div class="mt-2 small">
+                            <em>Note: If catbox.moe is unavailable, photos will be stored locally as a fallback.</em>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if qr_refreshed %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-sync-alt me-2"></i> The QR code scanning session was refreshed. You have 60 seconds to upload your photos.
+                    </div>
+                    {% endif %}
+                    
+                    {% if expires_at %}
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-clock me-2"></i> This upload link will permanently expire on: <strong>{{ expires_at }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div id="camera-section" class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="mb-0">Camera</h3>
+                        <div>
+                            <button id="switch-camera" class="btn btn-outline-secondary btn-sm me-2" title="Switch Camera">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                            <button id="toggle-camera" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-video"></i> Start Camera
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="camera-container" class="mb-3">
+                        <video id="camera" autoplay playsinline style="display: none;"></video>
+                        <img id="preview-image" class="img-fluid" alt="Preview">
+                        <div id="camera-controls">
+                            <button id="capture-btn" class="capture-btn" style="display: none;" title="Take Photo"></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="upload-section" class="mb-4">
+                    <h3 class="mb-3">Upload Photos</h3>
+                    
+                    <div id="drop-zone" class="mb-3">
+                        <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-secondary"></i>
+                        <h4>Drag & Drop Files Here</h4>
+                        <p class="text-muted">or</p>
+                        <button id="select-files-btn" class="btn btn-outline-primary">
+                            <i class="fas fa-folder-open me-2"></i>Browse Files
+                        </button>
+                        <input type="file" id="file-selector" accept="image/*" multiple>
+                    </div>
+                    
+                    <div id="upload-progress-container" class="mt-3" style="display: none;">
+                        <label>Uploading: <span id="upload-file-name"></span></label>
+                        <div class="progress upload-progress mb-2">
+                            <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="result-container" class="alert alert-success">
+                    <h4 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Upload Successful!</h4>
+                    <p id="success-message">Your photo has been uploaded successfully.</p>
+                    <div id="cloud-status" class="d-none mt-2 mb-2 badge bg-info">
+                        <i class="fas fa-cloud-upload-alt me-1"></i> Uploaded to catbox.moe
+                    </div>
+                    <div id="local-status" class="d-none mt-2 mb-2 badge bg-secondary">
+                        <i class="fas fa-server me-1"></i> Stored locally
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <p class="mb-0" id="file-details"></p>
+                        <a id="view-file-link" href="#" target="_blank" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-external-link-alt me-1"></i> View Photo
+                        </a>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="folder-id" value="{{ folder_id }}">
+                <input type="hidden" id="token" value="{{ token }}">
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between align-items-center">
+                    <button id="new-upload-btn" class="btn btn-secondary">
+                        <i class="fas fa-redo me-1"></i> Upload Another
+                    </button>
+                    <a href="{{ url_for('view_folder', folder_key=folder_id) }}" class="btn btn-outline-info">
+                        <i class="fas fa-images me-1"></i> View All Photos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleCameraBtn = document.getElementById('toggle-camera');
+        const switchCameraBtn = document.getElementById('switch-camera');
+        const captureBtn = document.getElementById('capture-btn');
+        const video = document.getElementById('camera');
+        const previewImage = document.getElementById('preview-image');
+        const cloudStatusBadge = document.getElementById('cloud-status');
+        const localStatusBadge = document.getElementById('local-status');
+        const dropZone = document.getElementById('drop-zone');
+        const fileSelector = document.getElementById('file-selector');
+        const selectFilesBtn = document.getElementById('select-files-btn');
+        
+        let stream = null;
+        let facingMode = 'environment'; // Start with back camera
+        
+        // Toggle camera on/off
+        toggleCameraBtn.addEventListener('click', function() {
+            if (video.style.display === 'none') {
+                startCamera();
+            } else {
+                stopCamera();
+            }
+        });
+        
+        // Switch between front and back cameras
+        switchCameraBtn.addEventListener('click', function() {
+            if (stream) {
+                stopCamera();
+                facingMode = facingMode === 'environment' ? 'user' : 'environment';
+                startCamera();
+            }
+        });
+        
+        // Capture photo
+        captureBtn.addEventListener('click', function() {
+            // Create a canvas and draw the video frame
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert the canvas to a blob and upload
+            canvas.toBlob(function(blob) {
+                // Create a File object from the blob
+                const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+                
+                // Show the preview
+                previewImage.src = URL.createObjectURL(blob);
+                previewImage.style.display = 'block';
+                video.style.display = 'none';
+                captureBtn.style.display = 'none';
+                
+                // Upload the file
+                uploadFile(file);
+                
+                // Stop the camera
+                stopCamera();
+            }, 'image/jpeg', 0.9);
+        });
+        
+        // Start camera function
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: facingMode,
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            })
+            .then(function(mediaStream) {
+                stream = mediaStream;
+                video.srcObject = mediaStream;
+                video.style.display = 'block';
+                captureBtn.style.display = 'block';
+                previewImage.style.display = 'none';
+                toggleCameraBtn.innerHTML = '<i class="fas fa-video-slash"></i> Stop Camera';
+                video.play();
+            })
+            .catch(function(error) {
+                console.error('Error accessing camera:', error);
+                alert('Could not access camera. Please ensure you have granted camera permissions.');
+            });
+        }
+        
+        // Stop camera function
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.style.display = 'none';
+            captureBtn.style.display = 'none';
+            toggleCameraBtn.innerHTML = '<i class="fas fa-video"></i> Start Camera';
+        }
+        
+        // File drag & drop handling
+        if (dropZone && fileSelector) {
+            // File selector button
+            if (selectFilesBtn) {
+                selectFilesBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    fileSelector.click();
+                });
+            }
+            
+            // Handle file selection
+            fileSelector.addEventListener('change', function() {
+                handleFiles(this.files);
+            });
+            
+            // Drag and drop events
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropZone.classList.add('bg-dark');
+                dropZone.classList.add('border-primary');
+            }
+            
+            function unhighlight() {
+                dropZone.classList.remove('bg-dark');
+                dropZone.classList.remove('border-primary');
+            }
+            
+            // Handle dropped files
+            dropZone.addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            });
+        }
+        
+        // Handle files for upload
+        function handleFiles(files) {
+            if (!files.length) return;
+            
+            // Convert FileList to array and filter for images
+            const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+            
+            if (imageFiles.length === 0) {
+                alert('Please select image files only.');
+                return;
+            }
+            
+            // Upload each file
+            imageFiles.forEach(file => {
+                uploadFile(file);
+            });
+            
+            // Reset file input
+            if (fileSelector) {
+                fileSelector.value = '';
+            }
+        }
+        
+        // Upload a file
+        function uploadFile(file) {
+            const progressBar = document.getElementById('upload-progress-bar');
+            const progressContainer = document.getElementById('upload-progress-container');
+            const uploadFileName = document.getElementById('upload-file-name');
+            const resultContainer = document.getElementById('result-container');
+            const fileDetails = document.getElementById('file-details');
+            const viewFileLink = document.getElementById('view-file-link');
+            const successMessage = document.getElementById('success-message');
+            const folderId = document.getElementById('folder-id');
+            
+            if (!folderId) {
+                alert('Folder ID is missing.');
+                return;
+            }
+            
+            const folderIdValue = folderId.value;
+            
+            // Show progress
+            if (progressContainer && uploadFileName) {
+                progressContainer.style.display = 'block';
+                uploadFileName.textContent = file.name;
+            }
+            
+            // Reset progress bar
+            if (progressBar) {
+                progressBar.style.width = '0%';
+                progressBar.setAttribute('aria-valuenow', 0);
+            }
+            
+            // Hide status badges
+            if (cloudStatusBadge) cloudStatusBadge.classList.add('d-none');
+            if (localStatusBadge) localStatusBadge.classList.add('d-none');
+            
+            // Create FormData
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder_id', folderIdValue);
+            
+            // Create and send request
+            const xhr = new XMLHttpRequest();
+            
+            xhr.open('POST', '/upload', true);
+            
+            // Update progress bar
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable && progressBar) {
+                    const percent = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percent + '%';
+                    progressBar.setAttribute('aria-valuenow', percent);
+                }
+            });
+            
+            // Handle response
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        
+                        // Hide progress
+                        if (progressContainer) {
+                            progressContainer.style.display = 'none';
+                        }
+                        
+                        // Show result
+                        if (resultContainer) {
+                            resultContainer.style.display = 'block';
+                        }
+                        
+                        // Check if it's a catbox.moe URL or local storage
+                        const isCatboxUrl = response.file_url && response.file_url.includes('catbox.moe');
+                        
+                        // Show the appropriate storage badge
+                        if (isCatboxUrl && cloudStatusBadge) {
+                            cloudStatusBadge.classList.remove('d-none');
+                            if (localStatusBadge) localStatusBadge.classList.add('d-none');
+                        } else if (localStatusBadge) {
+                            localStatusBadge.classList.remove('d-none');
+                            if (cloudStatusBadge) cloudStatusBadge.classList.add('d-none');
+                        }
+                        
+                        // Update file details
+                        if (fileDetails) {
+                            fileDetails.textContent = `${file.name} (${formatFileSize(file.size)})`;
+                        }
+                        
+                        // Update view link
+                        if (viewFileLink && response.file_url) {
+                            viewFileLink.href = response.file_url;
+                        }
+                        
+                        // Update success message
+                        if (successMessage) {
+                            successMessage.textContent = 'Your photo has been uploaded successfully.';
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error parsing response:', error);
+                        alert('Error processing the upload response. Please try again.');
+                    }
+                } else {
+                    console.error('Upload failed with status:', xhr.status);
+                    alert('Upload failed. Please try again.');
+                    
+                    // Hide progress
+                    if (progressContainer) {
+                        progressContainer.style.display = 'none';
+                    }
+                }
+            };
+            
+            // Handle errors
+            xhr.onerror = function() {
+                console.error('Network error during upload');
+                alert('Upload failed. Please check your connection.');
+                
+                // Hide progress
+                if (progressContainer) {
+                    progressContainer.style.display = 'none';
+                }
+            };
+            
+            // Send the form data
+            xhr.send(formData);
+        }
+        
+        // Format file size for display
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // New upload button
+        const newUploadBtn = document.getElementById('new-upload-btn');
+        if (newUploadBtn) {
+            newUploadBtn.addEventListener('click', function() {
+                const resultContainer = document.getElementById('result-container');
+                if (resultContainer) {
+                    resultContainer.style.display = 'none';
+                }
+                
+                // Reset progress
+                const progressContainer = document.getElementById('upload-progress-container');
+                if (progressContainer) {
+                    progressContainer.style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
