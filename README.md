@@ -87,7 +87,3 @@ python main.py
 ```
 
 The application will be available at https://photobooth-xhv0.onrender.com .
-
-## Deployment
-
-This application is configured for easy deployment on Replit or any other platform supporting Python/Flask applications. It includes a Procfile for Heroku deployment and configuration for PostgreSQL databases.
